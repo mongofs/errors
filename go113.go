@@ -1,5 +1,8 @@
 package errors
 
+import (
+	stderrors "errors"
+)
 // Is reports whether any error in err's chain matches target.
 //
 // The chain consists of err itself followed by the sequence of errors obtained by
