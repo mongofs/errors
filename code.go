@@ -3,8 +3,6 @@ package errors
 import (
 	"fmt"
 	"sync"
-
-	"github.com/pkg/errors"
 )
 
 var (
@@ -28,7 +26,7 @@ var (
 	// 在这里创建错误通过错误map创建错误，如果错误code没有在错误map中注册过，那么
 	// 就会报错errCodeNotExist
 	// 调用方应该首先判断erros.is( errCodeNotExist)
-	ErrCodeNotExist = errors.New("errors-map:  code is not exist")
+	ErrCodeNotExist = New("errors:  code is not exist")
 )
 
 type inn struct {
@@ -39,15 +37,15 @@ type inn struct {
 
 func Register(code int, httpCode int, ext string) {
 	if _, ok := _errorMap[code]; ok {
-		panic(fmt.Sprintf("code %d: is exist", code))
+		panic(fmt.Sprintf("errors : code %d is exist", code))
 	}
 
 	if _, ok := _httpCode[httpCode]; !ok {
-		panic("http code not in `200, 400, 401, 403, 404, 500`")
+		panic("errors : http code not in `200, 400, 401, 403, 404, 500`")
 	}
 
 	if len(ext) == 0 {
-		panic("code have no decrption")
+		panic("errors: code have no decrption")
 	}
 
 	temV := &inn{
@@ -63,7 +61,7 @@ func getExt(errCode int) (inn, error) {
 	_rwMutex.RLock()
 	defer _rwMutex.RUnlock()
 	if e, ok := _errorMap[errCode]; !ok {
-		panic(fmt.Sprintf("code %d: is not exist", errCode))
+		panic(fmt.Sprintf("errors : code %d  is not exist", errCode))
 	} else {
 		tem := *e
 		return tem, nil
