@@ -1,52 +1,60 @@
-//
+// 这里是建议处理最终错误的模式，如果在api接口调用过程中抛出的错误统一处理的地方
+// 不论是api类型服务还是脚本类型服务，应该在项目统一错误处理的地方进行错误处理，
+// 错误处理原则 1. 不应该太过分散的处理 2.不应该出现未知错误，一旦出现未知错误表明程序
+// 已经进入非常糟糕的阶段
+// 对内部错误记录应该记录：调用堆栈，code ，httpCode，ext，
+// 出现错误对外部调用应该返回：code，httpCode,ext
 package errors_test
 
 import (
 	"fmt"
-	errors_map "maoti_sdk/logic/pkg/errors-map"
+
+	"github.com/mongofs/errors"
 )
 
 // 创建具体错误，
 func Example_handlerCreatedByEngineersErr() {
 	// 关于error_code test
-	errors_map.Register(100910,500,"user is not found ")
-	defer errors_map.Flush()
-	ErrUserNotFound := errors_map.NewCode(100910)
+	errors.Register(100910,500,"user is not found ")
+	defer errors.Flush()
+	ErrUserNotFound := errors.NewCode(100910)
 
 	// 模拟具体程序产生错误如何handler
-	if errors_map.ErrWithCode == errors_map.ErrorType(ErrUserNotFound){
+	if errors.ErrWithCode == errors.ErrorType(ErrUserNotFound){
 		// check the error cause
-		fmt.Printf("error cause is  : %s \n" ,errors_map.Cause(ErrUserNotFound))
+		fmt.Printf("error cause is  : %s \n" ,errors.Cause(ErrUserNotFound))
 		// check this code
-		fmt.Printf("error code is : %v \n" ,errors_map.Code(ErrUserNotFound))
-	}
+		fmt.Printf("error code is : %v \n" ,errors.Code(ErrUserNotFound))
 
-	// 这里是建议处理最终错误的模式，如果在api接口调用过程中抛出的错误统一处理的地方
-	// 不论是api类型服务还是脚本类型服务，应该在项目统一错误处理的地方进行错误处理，
-	// 错误处理原则 1. 不应该太过分散的处理 2.不应该出现未知错误，一旦出现未知错误表明程序
-	// 已经进入非常糟糕的阶段
-	// 对内部错误记录应该记录：调用堆栈，code ，httpCode，ext，
-	// 出现错误对外部调用应该返回：code，httpCode,ext
+		// output: error cause is  : user is not found
+		// output: error code is  : 100910
+	}
 }
 
 
 
 func getError()error{
-	return errors_map.New("connection reset by peer ")
+	return errors.New("connection reset by peer ")
 }
 
 
 // 处理产生的第三方错误
 func Example_handlerCreatedByThirdPartyErr() {
 	var code = 10086 // 网络调用错误
-	errors_map.Register(code,500,"网络调用错误")
-	defer errors_map.Flush()
+	errors.Register(code,500,"网络调用错误")
+	defer errors.Flush()
 	err := getError();
 	// 在你这边应该将第三方的错误进行归类
-	withCode := errors_map.WithCode(err,code)
-	// 通过返回withcode 创建一个新的错误 ，类似wrapper
-	// 直接将withCode 返回出去
+	withCode := errors.WithCode(err,code)
 	fmt.Printf("%v\n\r",withCode)
+	fmt.Printf("%v\n\r",errors.Cause(err))
+	fmt.Printf("%v\n\r",errors.BaseCode(err))
+	fmt.Printf("%v\n\r",errors.BaseHttpCode(err))
+
+	// output : 网络调用错误
+	// output : connection reset by peer
+	// output : 10086
+	// output : 500
 }
 
 
@@ -58,20 +66,11 @@ func Example_handlerErr(){
 	// 拿到一个错误
 
 	// 判断错误是否为创建的错误 或者第三方错误
-	if errors_map.ErrFundamental == errors_map.ErrorType(err) || errors_map.ErrWithCode == errors_map.ErrorType(err){
+	if errors.ErrFundamental == errors.ErrorType(err) || errors.ErrWithCode == errors.ErrorType(err){
 		// 获取到code
-		fmt.Printf("%v \r\n", errors_map.Code(err))
+		fmt.Printf("%v \r\n", errors.Code(err))
 		// 记录错误堆栈
-		fmt.Printf("%v \r\n", errors_map.Code(err))
+		fmt.Printf("%v \r\n", errors.Code(err))
 		// return res
 	}
-	// 当出现程序错误走到这里，代表存在错误是未知的
-	// 这里错误就变得十分严重，原则上所有的错误都应该在错误码中包含，至少描述必须包含
-
-	// 这里是建议处理最终错误的模式，如果在api接口调用过程中抛出的错误统一处理的地方
-	// 不论是api类型服务还是脚本类型服务，应该在项目统一错误处理的地方进行错误处理，
-	// 错误处理原则 1. 不应该太过分散的处理 2.不应该出现未知错误，一旦出现未知错误表明程序
-	// 已经进入非常糟糕的阶段
-	// 对内部错误记录应该记录：调用堆栈，code ，httpCode，ext，
-	// 出现错误对外部调用应该返回：code，httpCode,ext
 }

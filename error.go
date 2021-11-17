@@ -98,8 +98,8 @@ import (
 )
 
 const (
-	ErrFundamental = "fundamental" // this is fundamental error
-	ErrWithCode    = "withCode" 	// this is wrap error
+	TypeErrFundamental = "fundamental" // this is fundamental error
+	TypeErrWithCode    = "withCode" 	// this is wrap error
 )
 
 // New returns an error with the supplied message.
@@ -357,10 +357,11 @@ func (w *withCode) Error() string { return w.i.ext + ": " + w.cause.Error() }
 // interface:
 //
 //     type code interface {
-//            Code() int
+//        	Cause() error
+//			Code() int
 //     }
 // make sure the return not zero
-func Code(err error) int {
+func BaseCode(err error) int {
 	type code interface {
 		Cause() error
 		Code() int
@@ -377,6 +378,58 @@ func Code(err error) int {
 	}
 	return c
 }
+
+
+
+
+// interface:
+//
+//     type code interface {
+//           	Cause() error
+//				Code() int
+//     }
+// make sure the return not zero
+func BaseHttpCode(err error) int {
+	type code interface {
+		Cause() error
+		HttpCode() int
+	}
+
+	c :=0
+	for err != nil {
+		cause, ok := err.(code)
+		if !ok {
+			break
+		}
+		err = cause.Cause()
+		c = cause.HttpCode()
+	}
+	return c
+}
+
+
+
+
+
+// interface:
+//
+//     type code interface {
+//            Code() int
+//     }
+// make sure the return not zero
+func Code(err error) int {
+	type code interface {
+		Code() int
+	}
+
+	c,ok := err.(code)
+	if !ok {
+		return 0
+	}
+	return c.Code()
+}
+
+
 
 // interface:
 //
@@ -399,14 +452,15 @@ func HttpCode(err error) int {
 	}
 }
 
+
 // return  fundamental is an error which created by engine
 // return  withCode is an error which created by third_part
 func ErrorType(err error) string {
 	switch err.(type) {
 	case *fundamental:
-		return ErrFundamental
+		return TypeErrFundamental
 	case *withCode:
-		return ErrWithCode
+		return TypeErrWithCode
 	}
 	return ""
 }

@@ -2,8 +2,9 @@ package errors
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // 创建错误，以及创建错误的类型判断
@@ -13,12 +14,12 @@ func TestNewError(t *testing.T) {
 		give     error
 		expectTy string //期望的错误类型
 	}{
-		{code: ErrDatabase, give: NewCode(ErrDatabase) /* 得到一个被创建的error */, expectTy: ErrFundamental},
-		{code: ErrDatabase, give: NewCode(ErrDatabase) /* 得到一个被创建的error */, expectTy: ErrFundamental},
+		{code: ErrDatabase, give: NewCode(ErrDatabase) /* 得到一个被创建的error */, expectTy: TypeErrFundamental},
+		{code: ErrDatabase, give: NewCode(ErrDatabase) /* 得到一个被创建的error */, expectTy: TypeErrFundamental},
 		{
 			code:     ErrDatabase,
 			give:     WithCode(NewCode(ErrDatabase), ErrDecodingJSON) /* 得到一个被创建的error */,
-			expectTy: ErrWithCode,
+			expectTy: TypeErrWithCode,
 		},
 	}
 
@@ -37,8 +38,8 @@ func TestWithCode(t *testing.T) {
 		expectTy   string // withCode 是期望的错误
 		cause      error  // 调用cause 方法会显示包裹的信息
 	}{
-		{give: WithCode(NewCode(ErrBind), ErrDatabase), expectCode: ErrDatabase, expectTy: ErrWithCode, cause: NewCode(ErrBind)},
-		{give: WithCode(NewCode(ErrBind), ErrDatabase), expectCode: ErrDatabase, expectTy: ErrWithCode, cause: NewCode(ErrBind)},
+		{give: WithCode(NewCode(ErrBind), ErrDatabase), expectCode: ErrDatabase, expectTy: TypeErrWithCode, cause: NewCode(ErrBind)},
+		{give: WithCode(NewCode(ErrBind), ErrDatabase), expectCode: ErrDatabase, expectTy: TypeErrWithCode, cause: NewCode(ErrBind)},
 	}
 
 	for _, v := range tests {
@@ -82,5 +83,88 @@ func TestLoopWithCode(t *testing.T) {
 		errTwo := WithCode(errOne,v.giveCodeTwo)
 		assert.Equal(t,v.expectCode, Code(errTwo)) //获取到第一个withcode 的code
 		assert.Equal(t,v.expectErr, Cause(errTwo)) // 对比原始的错误
+	}
+}
+
+
+// 测试HttpCode方法
+func TestHttpCode(t *testing.T) {
+	tests:= []struct{
+		give error
+		wrap int // wrap code
+ 		expectHttpCode int
+	}{
+		{
+			give: New("connection reset by peer "),
+			wrap: ErrDatabase,
+			expectHttpCode: 500,
+		},
+		{
+			give: New("connection reset by peer "),
+			wrap: ErrInvalidAuthHeader,
+			expectHttpCode: 401,
+		},
+	}
+
+	for _,v := range tests {
+		assert.Equal(t,v.expectHttpCode,HttpCode(WithCode(v.give,v.wrap)))
+	}
+}
+
+
+// 测试Code方法
+func TestCode(t *testing.T) {
+	tests:= []struct{
+		give error
+		wrap int // wrap code
+		expectCode int
+	}{
+		{
+			give: New("connection reset by peer "),
+			wrap: ErrDatabase,
+			expectCode: ErrDatabase,
+		},
+		{
+			give: New("connection reset by peer "),
+			wrap: ErrInvalidAuthHeader,
+			expectCode: ErrInvalidAuthHeader,
+		},
+	}
+
+	for _,v := range tests {
+		assert.Equal(t,v.expectCode,Code(WithCode(v.give,v.wrap)))
+	}
+}
+
+
+
+// 测试BaseCode方法
+func TestBaseCodeAndBaseHttpCode(t *testing.T) {
+	tests:= []struct{
+		give error
+		wrap int // wrap code
+		wrap2 int // wrap code
+		expectCode int
+		expectBaseHttpCode int
+	}{
+		{
+		give: New("connection reset by peer "),
+			wrap: ErrDatabase,
+			wrap2: ErrBind,
+			expectCode: ErrDatabase,
+			expectBaseHttpCode: 500,
+		},
+		{
+		give: New("connection reset by peer "),
+			wrap: ErrInvalidAuthHeader,
+			wrap2: ErrBind,
+			expectCode: ErrInvalidAuthHeader,
+			expectBaseHttpCode: 500,
+		},
+	}
+
+	for _,v := range tests {
+		assert.Equal(t,v.expectCode,BaseCode(WithCode(WithCode(v.give,v.wrap),v.wrap2) ))
+		assert.Equal(t,v.expectBaseHttpCode,BaseHttpCode(WithCode(WithCode(v.give,v.wrap),v.wrap2) ))
 	}
 }
